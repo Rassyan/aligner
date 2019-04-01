@@ -101,6 +101,7 @@ enum Choice {
 
 
 impl Aligner {
+    /// 每个list中不允许时间段相互交叉，并且按开始时间排序
     /// In each list no time span should intersect any other and both list are
     /// sorted by starting times.
     pub fn new(
@@ -109,6 +110,7 @@ impl Aligner {
         nopsplit_bonus_normalized: f64,
         mut progress_handler_opt: Option<Box<ProgressHandler>>,
     ) -> Option<Aligner> {
+        // 进度条初始化
         if let Some(ref mut progress_handler) = progress_handler_opt {
             progress_handler.init(list.len() as i64);
         }
@@ -120,9 +122,11 @@ impl Aligner {
             return None;
         }
 
+        // 待校正的总时间跨度
         // this is the timespan length which can contain all incorrect subtitles
         let list_timespan = list.last().unwrap().end() - list.first().unwrap().start();
 
+        // 预计算极限平移值
         // It might be possible that all corrected subtiles fit in the reference list
         // timeframe. It they don't
         // we need to provide extra space, so that the produting corrected subtitles
@@ -186,9 +190,13 @@ impl Aligner {
                 progress_handler.inc();
             }
         }
+        println!("");
+        println!("{:?}", all_spanstart_buffers);
+        println!("{:?}", last_rating_buffer);
 
         // find the index in the last rating buffer (which represents all spans) with
         // maximum rating - which is the last index because the ratings rise monotonous.
+        // 评分单调递增，最后的评分是最大评分
         let mut best_end = self.get_end() - TimeDelta::one();
 
         // because we can read each interval ends at the span start of next span, we

@@ -255,6 +255,7 @@ fn run() -> Result<()> {
         .after_help("This program works with .srt, .ass/.ssa, .idx and .sub files. The corrected file will have the same format as the incorrect file.")
         .get_matches();
 
+    // 开始执行主逻辑
     let incorrect_file_path = matches.value_of("incorrect-sub-file").unwrap();
     let reference_file_path = matches.value_of("reference-sub-file").unwrap();
     let output_file_path = matches.value_of("output-file-path").unwrap();
@@ -345,9 +346,14 @@ fn run() -> Result<()> {
         split_penalty / 100.0,
         Some(Box::new(ProgressInfo::default())),
     );
+//    println!("{:?}", alg_deltas);
     let mut deltas = alg_deltas_to_timing_deltas(&alg_deltas, interval);
+//    println!("{:?}", alg_deltas);
+//    println!("{:?}", deltas);
+
 
     // list of original subtitles lines which have the same timings
+    // 将每句偏移合并
     let shift_groups: Vec<(AlgTimeDelta, Vec<TimeSpan>)> = get_subtitle_delta_groups(
         alg_deltas.iter()
                   .cloned()
@@ -355,6 +361,7 @@ fn run() -> Result<()> {
                   .collect(),
     );
 
+    // shift_groups记录了平移的信息，以下代码做输出展示。
     for (shift_group_delta, shift_group_lines) in shift_groups {
         // computes the first and last timestamp for all lines with that delta
         // -> that way we can provide the user with an information like

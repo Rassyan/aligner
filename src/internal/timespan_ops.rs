@@ -136,6 +136,7 @@ pub fn prepare_time_spans(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
         return (Vec::new(), Vec::new());
     }
 
+    // 1
     let operations = [
         prepare_spans_sorted,
         prepare_spans_non_overlapping,

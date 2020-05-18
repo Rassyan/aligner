@@ -1,4 +1,4 @@
-// This file is part of the Rust library and binary `aligner`.
+// This file is part of the Rust library and binary `alass`.
 //
 // Copyright (C) 2017 kaegi
 //
@@ -15,12 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-use internal::{TimeDelta, TimeSpan};
+use crate::{TimeDelta, TimeSpan};
 use std;
 use std::cmp::max;
 
-fn prepare_spans_sorted(overlapping: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
+fn prepare_spans_sorted(overlapping: &[TimeSpan]) -> (Vec<TimeSpan>, Vec<usize>) {
     if overlapping.is_empty() {
         return (Vec::new(), Vec::new());
     }
@@ -37,10 +36,7 @@ fn prepare_spans_sorted(overlapping: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize
         mapping[i] = i2;
     }
 
-    (
-        sorted_overlapping.into_iter().map(|(_, ts)| ts).collect(),
-        mapping,
-    )
+    (sorted_overlapping.into_iter().map(|(_, ts)| ts).collect(), mapping)
 }
 
 /// Returns a smaller list of non-overlapping time spans and a vector with
@@ -48,7 +44,7 @@ fn prepare_spans_sorted(overlapping: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize
 /// -> index in non-overlapping-vector"
 /// Requires that all spans are sorted by start time and the vector is not
 /// empty.
-fn prepare_spans_non_overlapping(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
+fn prepare_spans_non_overlapping(v: &[TimeSpan]) -> (Vec<TimeSpan>, Vec<usize>) {
     if v.is_empty() {
         return (Vec::new(), Vec::new());
     }
@@ -66,7 +62,7 @@ fn prepare_spans_non_overlapping(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>
             result[last_element_index] = result[last_element_index].new_copy_with_end(current_end);
         } else {
             // time span does not overlap
-            result.push(ts);
+            result.push(*ts);
             current_end = ts.end();
         }
 
@@ -82,12 +78,9 @@ fn prepare_spans_non_overlapping(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>
 /// Returns a list of time-spans without spans of zero-length. The zero-length
 /// time spans
 /// are grouped together with next or previous time spans.
-fn prepare_spans_nonzero(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
+fn prepare_spans_nonzero(v: &[TimeSpan]) -> (Vec<TimeSpan>, Vec<usize>) {
     // list of non-zero spans
-    let non_zero_spans: Vec<TimeSpan> = v.iter()
-                                         .cloned()
-                                         .filter(|&ts| ts.len() > TimeDelta::zero())
-                                         .collect();
+    let non_zero_spans: Vec<TimeSpan> = v.iter().cloned().filter(|&ts| ts.len() > TimeDelta::zero()).collect();
     if non_zero_spans.is_empty() {
         return (Vec::new(), Vec::new());
     }
@@ -120,18 +113,13 @@ fn prepare_spans_nonzero(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
             (Some(p), Some(n)) => ts.fast_distance_to(p) <= ts.fast_distance_to(n),
         };
 
-
-        indices.push(if merge_with_prev {
-            new_index - 1
-        } else {
-            new_index
-        });
+        indices.push(if merge_with_prev { new_index - 1 } else { new_index });
     }
 
     (non_zero_spans, indices)
 }
 
-pub fn prepare_time_spans(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
+pub fn prepare_time_spans(v: &[TimeSpan]) -> (Vec<TimeSpan>, Vec<usize>) {
     if v.is_empty() {
         return (Vec::new(), Vec::new());
     }
@@ -142,9 +130,9 @@ pub fn prepare_time_spans(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
         prepare_spans_nonzero,
     ];
     let mut mapping: Vec<usize> = (0..v.len()).collect();
-    let mut result = v;
+    let mut result: Vec<TimeSpan> = v.to_vec();
     for &operation in &operations {
-        let (new_result, new_mapping) = (operation)(result);
+        let (new_result, new_mapping) = (operation)(&result);
         if new_result.is_empty() {
             return (Vec::new(), Vec::new());
         }
@@ -155,26 +143,26 @@ pub fn prepare_time_spans(v: Vec<TimeSpan>) -> (Vec<TimeSpan>, Vec<usize>) {
     (result, mapping)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use internal::prepare_time_spans;
-    use tests::get_test_time_spans;
+    use crate::prepare_time_spans;
+    use crate::tests::get_test_time_spans;
 
     #[test]
     fn test_prepare_time_spans() {
         for time_spans in get_test_time_spans() {
-            let (non_overlapping, indices) = prepare_time_spans(time_spans.clone());
+            let (non_overlapping, indices) = prepare_time_spans(&time_spans);
 
             assert!(non_overlapping.len() <= time_spans.len());
 
             // function will condense non-zero timespans into one -> vector of zero-length
             // timespans will turn into empty vector
-            let full_length: i64 = time_spans.iter()
-                                             .cloned()
-                                             .map(|time_spans| i64::from(time_spans.len()))
-                                             .sum();
+            let full_length: i64 = time_spans
+                .iter()
+                .cloned()
+                .map(|time_spans| i64::from(time_spans.len()))
+                .sum();
             if full_length == 0 {
                 assert!(non_overlapping.is_empty());
                 continue;
@@ -186,15 +174,16 @@ mod tests {
             assert!(non_overlapping.len() > 0);
 
             // test whether some spans overlap (they shouldn't)
-            non_overlapping.iter()
-                           .cloned()
-                           .zip(non_overlapping.iter().cloned().skip(1))
-                           .inspect(|&(last, current)| {
-                assert!(last.start() <= last.end());
-                assert!(last.end() <= current.start());
-                assert!(current.start() <= current.end());
-            })
-                           .count();
+            non_overlapping
+                .iter()
+                .cloned()
+                .zip(non_overlapping.iter().cloned().skip(1))
+                .inspect(|&(last, current)| {
+                    assert!(last.start() <= last.end());
+                    assert!(last.end() <= current.start());
+                    assert!(current.start() <= current.end());
+                })
+                .count();
 
             // test mapping from "overlapping -> non-overlapping"
             assert!(time_spans.len() == indices.len());
@@ -202,13 +191,11 @@ mod tests {
                 assert!(non_overlapping[indices[i]].contains(span) || span.len() == TimeDelta::zero());
             }
 
-
             // -----------------------------------------------------------
             // apply `prepare_time_spans()` a second time which should now be a noop
-            let (prepared_timespans2, indices2) = prepare_time_spans(non_overlapping.clone());
+            let (prepared_timespans2, indices2) = prepare_time_spans(&non_overlapping);
             assert_eq!(non_overlapping, prepared_timespans2);
             assert_eq!(indices2, (0..indices2.len()).collect::<Vec<_>>());
-
         }
     }
 }

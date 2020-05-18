@@ -5,3 +5,7 @@ target
 *.srt
 *.svg
 data
+*.rs.bk
+videos.list
+generated-data
+test_data

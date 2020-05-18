@@ -110,6 +110,8 @@ impl Aligner {
         nopsplit_bonus_normalized: f64,
         mut progress_handler_opt: Option<Box<ProgressHandler>>,
     ) -> Option<Aligner> {
+        println!("list {:?}", list);
+        println!("reference {:?}", reference);
         // 进度条初始化
         if let Some(ref mut progress_handler) = progress_handler_opt {
             progress_handler.init(list.len() as i64);
@@ -173,7 +175,7 @@ impl Aligner {
         let mut last_rating_buffer: RatingBuffer = RatingBuffer::init_with_one_segment(Rating::zero(), Rating::zero(), self.get_buffer_length());
 
         // iterator that removes the first element and adds a None value to the end ->
-        // provedes the "next" span
+        // provides the "next" span
         for (i, time_span) in self.list.iter().cloned().enumerate() {
             // compute the space between this span and the next span
             let next_span_opt = self.list.get(i + 1);
@@ -191,8 +193,8 @@ impl Aligner {
             }
         }
         println!("");
-        println!("{:?}", all_spanstart_buffers);
-        println!("{:?}", last_rating_buffer);
+        println!("all_spanstart_buffers {:?}", all_spanstart_buffers);
+        println!("last_rating_buffer {:?}", last_rating_buffer);
 
         // find the index in the last rating buffer (which represents all spans) with
         // maximum rating - which is the last index because the ratings rise monotonous.
@@ -214,6 +216,7 @@ impl Aligner {
         }
 
         time_span_starts = time_span_starts.into_iter().rev().collect();
+        println!("time_span_starts {:?}", time_span_starts);
         self.list
             .iter()
             .zip(time_span_starts.iter())

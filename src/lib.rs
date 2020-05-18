@@ -85,6 +85,7 @@ pub fn align(
         Some(mut aligner) => aligner.align_all_spans(),
         None => (0..list_len).map(|_| TimeDelta::zero()).collect(),
     };
+    println!("deltas {:?}", deltas);
 
     // get deltas for overlapping timspan-list
     list_indices.into_iter().map(|i| deltas[i]).collect()

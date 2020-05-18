@@ -346,10 +346,9 @@ fn run() -> Result<()> {
         split_penalty / 100.0,
         Some(Box::new(ProgressInfo::default())),
     );
-//    println!("{:?}", alg_deltas);
     let mut deltas = alg_deltas_to_timing_deltas(&alg_deltas, interval);
-//    println!("{:?}", alg_deltas);
-//    println!("{:?}", deltas);
+    println!("alg_deltas {:?}", alg_deltas);
+    println!("deltas {:?}", deltas);
 
 
     // list of original subtitles lines which have the same timings
@@ -360,6 +359,7 @@ fn run() -> Result<()> {
                   .zip(timings_incorrect.iter().cloned())
                   .collect(),
     );
+    println!("shift_groups {:?}", shift_groups);
 
     // shift_groups记录了平移的信息，以下代码做输出展示。
     for (shift_group_delta, shift_group_lines) in shift_groups {
